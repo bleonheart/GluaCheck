@@ -22,7 +22,7 @@ local BYTE_OBRACE, BYTE_CBRACE = sbyte("{"), sbyte("}")
 local BYTE_QUOTE, BYTE_DQUOTE = sbyte("'"), sbyte('"')
 local BYTE_PLUS, BYTE_DASH, BYTE_LDASH = sbyte("+"), sbyte("-"), sbyte("_")
 local BYTE_SLASH, BYTE_BSLASH = sbyte("/"), sbyte("\\")
-local BYTE_EQ, BYTE_NE = sbyte("="), sbyte("~")
+local BYTE_EQ, BYTE_NE, BYTE_NOT = sbyte("="), sbyte("~"), sbyte("!")
 local BYTE_LT, BYTE_GT = sbyte("<"), sbyte(">")
 local BYTE_LF, BYTE_CR = sbyte("\n"), sbyte("\r")
 local BYTE_SPACE, BYTE_FF, BYTE_TAB, BYTE_VTAB = sbyte(" "), sbyte("\f"), sbyte("\t"), sbyte("\v")
@@ -80,7 +80,7 @@ local function is_space(b)
 end
 
 local keywords = utils.array_to_set({
-   "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in",
+   "and", "break", "continue", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in",
    "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while"})
 
 local simple_escapes = {
@@ -591,6 +591,17 @@ local function lex_ne(state)
    end
 end
 
+local function lex_not(state)
+   local b = next_byte(state)
+
+   if b == BYTE_EQ then
+      next_byte(state)
+      return "!="
+   else
+      return "!"
+   end
+end
+
 local function lex_colon(state)
    local b = next_byte(state)
 
@@ -642,6 +653,7 @@ local byte_handlers = {
    [BYTE_SLASH] = lex_div,
    [BYTE_EQ] = lex_eq,
    [BYTE_NE] = lex_ne,
+   [BYTE_NOT] = lex_not,
    [BYTE_LT] = lex_lt,
    [BYTE_GT] = lex_gt,
    [BYTE_LDASH] = lex_ident

@@ -383,6 +383,7 @@ end
 
 local unary_operators = {
    ["not"] = "not",
+   ["!"] = "not",
    ["-"] = "unm",  -- Not mentioned in Metalua documentation.
    ["~"] = "bnot",
    ["#"] = "len"
@@ -398,7 +399,7 @@ local binary_operators = {
    ["&"] = "band", ["|"] = "bor", ["~"] = "bxor",
    ["<<"] = "shl", [">>"] = "shr",
    [".."] = "concat",
-   ["~="] = "ne", ["=="] = "eq",
+   ["~="] = "ne", ["!="] = "ne", ["=="] = "eq",
    ["<"] = "lt", ["<="] = "le",
    [">"] = "gt", [">="] = "ge",
    ["and"] = "and", ["or"] = "or"
@@ -647,6 +648,10 @@ statements["return"] = function(state, loc)
 end
 
 statements["break"] = function(_, loc)
+   return init_ast_node({}, loc, "Break")
+end
+
+statements["continue"] = function(_, loc)
    return init_ast_node({}, loc, "Break")
 end
 

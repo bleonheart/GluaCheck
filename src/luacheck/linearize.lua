@@ -1,7 +1,7 @@
 local parser = require "luacheck.parser"
 local utils = require "luacheck.utils"
 
-local pseudo_labels = utils.array_to_set({"do", "else", "break", "end", "return"})
+local pseudo_labels = utils.array_to_set({"do", "else", "break", "continue", "end", "return"})
 
 -- Who needs classes anyway.
 local function new_line(node, parent, value)
@@ -160,6 +160,9 @@ function LinState:leave_scope()
             if goto_.name == "break" then
                parser.syntax_error(
                   goto_.location, goto_.location.column + 4, "'break' is not inside a loop")
+            elseif goto_.name == "continue" then
+               parser.syntax_error(
+                  goto_.location, goto_.location.column + 4, "'continue' is not inside a loop")
             else
                parser.syntax_error(
                   goto_.location, goto_.location.column + 3, ("no visible label '%s'"):format(goto_.name))
