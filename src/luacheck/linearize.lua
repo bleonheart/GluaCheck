@@ -345,6 +345,7 @@ function LinState:emit_stmt_Fornum(node)
    self:emit(new_local_item({node[1]}))
    self:register_var(node[1], "loopi")
    self:emit_stmts(node[5] or node[4])
+   self:register_label("continue")
    self:leave_scope()
    self:emit_noop(node, true)
    self:emit_goto("do")
@@ -362,6 +363,7 @@ function LinState:emit_stmt_Forin(node)
    self:emit(new_local_item(node[1]))
    self:register_vars(node[1], "loop")
    self:emit_stmts(node[3])
+   self:register_label("continue")
    self:leave_scope()
    self:emit_noop(node, true)
    self:emit_goto("do")
@@ -404,6 +406,10 @@ end
 
 function LinState:emit_stmt_Break(node)
    self:emit_goto("break", false, node.location)
+end
+
+function LinState:emit_stmt_Continue(node)
+   self:emit_goto("continue", false, node.location)
 end
 
 function LinState:emit_stmt_Return(node)

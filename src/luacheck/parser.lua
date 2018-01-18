@@ -652,7 +652,7 @@ statements["break"] = function(_, loc)
 end
 
 statements["continue"] = function(_, loc)
-   return init_ast_node({}, loc, "Break")
+   return init_ast_node({}, loc, "Continue")
 end
 
 statements["goto"] = function(state, loc)
