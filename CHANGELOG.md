@@ -1,5 +1,41 @@
 # Change Log
 
+## 0.22.0 (unreleased)
+
+### New features and improvements
+
+* Added detection of cyclomatic complexity, with warnings emitted for
+  functions with complexity higher than a configurable limit; disabled
+  by default (#141).
+* Added a built-in formatter printing warnings and errors in a format
+  understood by MSBuild/Visual Studio if `luacheck` is
+  used as a custom build step (#142).
+* `ranges` and `quiet` options can now be used in config, e.g. `quiet = 1` to
+  disable `OK` lines in default formatter output.
+* `luacheck` module now adds `prev_line`, `prev_column`, and `prev_end_column`
+  fields to syntax error events if they refer to some extra location:
+  redefined label errors point to the previous definition,
+  unpaired tokens such as `function`/`end` point to the the first token (#134).
+* `luacheck` module now adds `prev_end_column` field to warning events that
+  already have `prev_line` and `prev_column` fields, and `overwritten_end_column`
+  for warnings with `overwritten_line` and `overwritten_column`.
+* Improved error messages for invalid options and config: when an option is
+  invalid, extra context is provided instead of just the name.
+* Custom stds are now validated on config load.
+* When recursively checking a directory, each failure to list a nested
+  directory is now reported separately, and other found files and directories
+  are checked anyway. Previously any error when listing any nested directory
+  resulted in immediate failure for the entire parent directory (#159).
+
+### Fixes
+
+* Fixed errors or incorrect reporting when unused mutually recursive functions
+  have other values assigned to their local variables.
+* Fixed unused values in infinite loops sometimes reported
+  as overwritten by another value.
+* Fixed caching not working properly when cache is enabled in config
+  loaded from a parent directory.
+
 ## 0.21.2 (2017-11-13)
 
 ### Fixes

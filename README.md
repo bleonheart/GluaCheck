@@ -4,7 +4,7 @@
 
 [![Build Status](https://travis-ci.org/mpeterv/luacheck.png?branch=master)](https://travis-ci.org/mpeterv/luacheck)
 [![Windows build status](https://ci.appveyor.com/api/projects/status/pgox2vvelagw1fux/branch/master?svg=true&passingText=Windows%20build%20passing&failingText=Windows%20build%20failing)](https://ci.appveyor.com/project/mpeterv/luacheck/branch/master)
-[![Coverage Status](https://coveralls.io/repos/mpeterv/luacheck/badge.svg?branch=master)](https://coveralls.io/r/mpeterv/luacheck?branch=master)
+[![codecov](https://codecov.io/gh/mpeterv/luacheck/branch/master/graph/badge.svg)](https://codecov.io/gh/mpeterv/luacheck)
 [![License](https://img.shields.io/badge/License-MIT-brightgreen.svg)](LICENSE)
 
 ## Contents
@@ -36,7 +36,7 @@ If it is not possible to install [LuaFileSystem](http://keplerproject.github.io/
 
 ### Binary download
 
-For Windows there is experimental single-file 64-bit binary distribution, bundling Lua 5.3.4, Luacheck, LuaFileSystem, and LuaLanes using [LuaStatic](https://github.com/ers35/luastatic):
+For Windows there is single-file 64-bit binary distribution, bundling Lua 5.3.4, Luacheck, LuaFileSystem, and LuaLanes using [LuaStatic](https://github.com/ers35/luastatic):
 [download](https://github.com/mpeterv/luacheck/releases/download/0.21.2/luacheck.exe).
 
 ### Manual installation
@@ -126,7 +126,7 @@ After the Luacheck repo is cloned and changes are made, run `luarocks make` (opt
 ```
 The MIT License (MIT)
 
-Copyright (c) 2014 - 2017 Peter Melnichenko
+Copyright (c) 2014 - 2018 Peter Melnichenko
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

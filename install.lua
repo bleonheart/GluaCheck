@@ -17,6 +17,7 @@ Luacheck modules will be installed into <path>%ssrc.
 Pass . to build luacheck executable script without installing.]]):format(dirsep, dirsep))
 
 parser:option("--lua", "Absolute path to lua interpreter or its name if it's in PATH.", lua_executable)
+parser:option("--destdir", "Path to stage luacheck installation into")
 
 local args = parser:parse()
 
@@ -33,6 +34,9 @@ local function run_command(cmd)
 end
 
 local function mkdir(dir)
+   if args.destdir then
+      dir = args.destdir .. dirsep .. dir
+   end
    if is_windows then
       run_command(([[if not exist "%s" md "%s"]]):format(dir, dir))
    else
@@ -41,6 +45,9 @@ local function mkdir(dir)
 end
 
 local function copy(src, dest)
+   if args.destdir then
+      dest = args.destdir .. dirsep .. dest
+   end
    if is_windows then
       run_command(([[copy /y "%s" "%s"]]):format(src, dest))
    else
@@ -75,8 +82,8 @@ if is_windows then
 else
    fh:write(([=[
 #!/bin/sh
-exec "%s" -e "package.path=[[%s/../src/?.lua;%s/../src/?/init.lua;]]..package.path" "%s/luacheck.lua" "$@"
-]=]):format(args.lua, '$(dirname "$0")', '$(dirname "$0")', '$(dirname "$0")'))
+exec "%s" -e "package.path=[[%s/?.lua;%s/?/init.lua;]]..package.path" "%s/luacheck.lua" "$@"
+]=]):format(args.lua, luacheck_src_dir, luacheck_src_dir, '$(dirname "$0")'))
 end
 
 fh:close()
@@ -94,39 +101,43 @@ end
 print("    Installing luacheck modules into " .. luacheck_src_dir)
 mkdir(luacheck_lib_dir)
 
-for _, filename in ipairs {
-      "main.lua",
+for _, filename in ipairs({
       "init.lua",
-      "config.lua",
-      "linearize.lua",
-      "analyze.lua",
-      "core_utils.lua",
-      "check.lua",
-      "parser.lua",
-      "lexer.lua",
-      "filter.lua",
-      "options.lua",
-      "inline_options.lua",
+      "argparse.lua",
       "builtin_standards.lua",
-      "love_standard.lua",
-      "ngx_standard.lua",
-      "expand_rockspec.lua",
-      "multithreading.lua",
       "cache.lua",
+      "check.lua",
+      "config.lua",
+      "core_utils.lua",
+      "detect_bad_whitespace.lua",
+      "detect_cyclomatic_complexity.lua",
+      "detect_globals.lua",
+      "detect_uninit_access.lua",
+      "detect_unreachable_code.lua",
+      "detect_unused_locals.lua",
+      "detect_unused_rec_funcs.lua",
+      "expand_rockspec.lua",
+      "filter.lua",
       "format.lua",
-      "version.lua",
       "fs.lua",
       "globbing.lua",
-      "utils.lua",
-      "argparse.lua",
-      "whitespace.lua",
-      "detect_globals.lua",
-      "standards.lua",
-      "lua_fs.lua",
+      "inline_options.lua",
+      "lexer.lua",
       "lfs_fs.lua",
-      "detect_unused_rec_funcs.lua",
-      "detect_unreachable_code.lua",
-      "detect_uninit_access.lua"} do
+      "linearize.lua",
+      "love_standard.lua",
+      "lua_fs.lua",
+      "main.lua",
+      "name_functions.lua",
+      "multithreading.lua",
+      "ngx_standard.lua",
+      "options.lua",
+      "parser.lua",
+      "resolve_locals.lua",
+      "runner.lua",
+      "standards.lua",
+      "utils.lua",
+      "version.lua"}) do
    copy("src" .. dirsep .. "luacheck" .. dirsep .. filename, luacheck_lib_dir)
 end
 

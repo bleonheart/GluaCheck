@@ -41,11 +41,14 @@ function fs.split_base(path)
    end
 end
 
-local function is_absolute(path)
+function fs.is_absolute(path)
    return fs.split_base(path) ~= ""
 end
 
 function fs.normalize(path)
+   if utils.is_windows then
+      path = path:lower()
+   end
    local base, rest = fs.split_base(path)
    rest = rest:gsub("[/\\]", utils.dir_sep)
 
@@ -69,7 +72,7 @@ function fs.normalize(path)
 end
 
 local function join_two_paths(base, path)
-   if base == "" or is_absolute(path) then
+   if base == "" or fs.is_absolute(path) then
       return path
    else
       return ensure_dir_sep(base) .. path
@@ -114,7 +117,7 @@ end
 -- Path must be absolute.
 -- Returns absolute and relative paths to directory containing file or nil.
 function fs.find_file(path, file)
-   if is_absolute(file) then
+   if fs.is_absolute(file) then
       return fs.is_file(file) and path, ""
    end
 
@@ -126,7 +129,7 @@ function fs.find_file(path, file)
       if fs.is_file(fs.join(base..rest, file)) then
          return base..rest, rel_path
       elseif rest == "" then
-         break
+         return
       end
 
       rest = rest:match("^(.*)"..utils.dir_sep..".*$") or ""
@@ -139,13 +142,17 @@ end
 function fs.extract_files(dir_path, pattern)
    assert(fs.has_lfs)
    local res = {}
+   local err_map = {}
 
    local function scan(dir)
       local ok, iter, state, var = pcall(base_fs.dir_iter, dir)
 
       if not ok then
          local err = utils.unprefix(iter, "cannot open " .. dir .. ": ")
-         return "couldn't recursively check " .. dir .. ": " .. err
+         err = "couldn't recursively check: " .. err
+         err_map[dir] = err
+         table.insert(res, dir)
+         return
       end
 
       for path in iter, state, var do
@@ -153,11 +160,8 @@ function fs.extract_files(dir_path, pattern)
             local full_path = fs.join(dir, path)
 
             if fs.is_dir(full_path) then
-               local err = scan(full_path)
+               scan(full_path)
 
-               if err then
-                  return err
-               end
             elseif path:match(pattern) and fs.is_file(full_path) then
                table.insert(res, full_path)
             end
@@ -165,14 +169,9 @@ function fs.extract_files(dir_path, pattern)
       end
    end
 
-   local err = scan(dir_path)
-
-   if err then
-      return nil, err
-   end
-
+   scan(dir_path)
    table.sort(res)
-   return res
+   return res, err_map
 end
 
 -- Returns modification time for a file.

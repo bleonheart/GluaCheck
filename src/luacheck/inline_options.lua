@@ -33,8 +33,8 @@ local function add_closure_boundaries(ast, events)
    end
 end
 
-local max_line_length_opts = utils.array_to_set({
-   "max_line_length", "max_code_line_length", "max_string_line_length", "max_comment_line_length"})
+local limit_opts = utils.array_to_set({"max_line_length", "max_code_line_length", "max_string_line_length",
+   "max_comment_line_length", "max_cyclomatic_complexity"})
 
 local function is_valid_option_name(name)
    if name == "std" or options.variadic_inline_options[name] then
@@ -42,7 +42,7 @@ local function is_valid_option_name(name)
    end
 
    name = name:gsub("^no_", "")
-   return options.nullary_inline_options[name] or max_line_length_opts[name]
+   return options.nullary_inline_options[name] or limit_opts[name]
 end
 
 -- Splits a token array for an inline option invocation into
@@ -124,7 +124,7 @@ local function get_options(body)
 
             opts[name] = flag
          else
-            assert(max_line_length_opts[name])
+            assert(limit_opts[name])
 
             if flag then
                if #args ~= 1 then
@@ -300,10 +300,10 @@ end
 -- and option events carry inline option tables themselves.
 -- Inline option errors have codes `02[123]`, issued for invalid option syntax,
 -- unpaired push directives and unpaired pop directives.
-function inline_options.get_events(ast, comments, code_lines, warnings)
-   local events = utils.update({}, warnings)
-   add_closure_boundaries(ast, events)
-   local per_line_opts = add_inline_options(events, comments, code_lines)
+function inline_options.get_events(chstate)
+   local events = utils.update({}, chstate.warnings)
+   add_closure_boundaries(chstate.ast, events)
+   local per_line_opts = add_inline_options(events, chstate.comments, chstate.code_lines)
    core_utils.sort_by_location(events)
    mark_unpaired_boundaries(events)
    events = filter_useless_boundaries(events)
@@ -320,29 +320,25 @@ local function stack_to_array(stack)
    return res
 end
 
-local function invalid_option_value(invalid_opt)
-   return ("invalid value of inline option '%s'"):format(invalid_opt)
-end
-
 -- Validates inline options within events and per-line options.
 -- Returns a new array of events and a new per-line option map
 -- with invalid options replaced with errors.
--- This is require because of `std` option which has to be validated
+-- This is required because of `std` option which has to be validated
 -- at join/filter time, not at check time, because of possible
 -- custom stds.
-function inline_options.validate_options(events, per_line_opts)
+function inline_options.validate_options(events, per_line_opts, stds)
    local new_events = {}
    local new_per_line_opts = {}
    local added_errors = false
 
    for i, event in ipairs(events) do
       if event.options then
-         local valid, invalid_opt = options.validate(options.all_options, event.options)
+         local ok, err = options.validate(options.all_options, event.options, stds)
 
-         if valid then
+         if ok then
             new_events[i] = event
          else
-            new_events[i] = invalid_options_error(event, invalid_option_value(invalid_opt))
+            new_events[i] = invalid_options_error(event, err)
          end
       else
          new_events[i] = event
@@ -351,16 +347,16 @@ function inline_options.validate_options(events, per_line_opts)
 
    for line, line_events in pairs(per_line_opts) do
       for _, event in ipairs(line_events) do
-         local valid, invalid_opt = options.validate(options.all_options, event.options)
+         local ok, err = options.validate(options.all_options, event.options)
 
-         if valid then
+         if ok then
             if not new_per_line_opts[line] then
                new_per_line_opts[line] = {}
             end
 
             table.insert(new_per_line_opts[line], event)
          else
-            table.insert(new_events, invalid_options_error(event, invalid_option_value(invalid_opt)))
+            table.insert(new_events, invalid_options_error(event, err))
             added_errors = true
          end
       end

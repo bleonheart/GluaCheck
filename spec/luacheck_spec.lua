@@ -8,6 +8,7 @@ local function strip_locations(report)
          event.end_column = nil
          event.prev_line = nil
          event.prev_column = nil
+         event.prev_end_column = nil
       end
    end
 
@@ -36,11 +37,14 @@ describe("luacheck", function()
 
    it("panics on bad options", function()
       assert.has_error(function() luacheck({"foo"}, "bar") end,
-         "bad argument #2 to 'luacheck.check_files' (table or nil expected, got string)")
+         "bad argument #2 to 'luacheck.check_files' (option table expected, got string)")
       assert.has_error(function() luacheck({"foo"}, {globals = "bar"}) end,
-         "bad argument #2 to 'luacheck.check_files' (invalid value of option 'globals')")
+         "bad argument #2 to 'luacheck.check_files' (invalid value of option 'globals': table expected, got string)")
+      -- luacheck: no max line length
       assert.has_error(function() luacheck({"foo"}, {{unused = 123}}) end,
-         "bad argument #2 to 'luacheck.check_files' (invalid value of option 'unused')")
+         "bad argument #2 to 'luacheck.check_files' (invalid options at index [1]: invalid value of option 'unused': boolean expected, got number)")
+      assert.has_error(function() luacheck({"foo"}, {{{}, {unused = 123}}}) end,
+         "bad argument #2 to 'luacheck.check_files' (invalid options at index [1][2]: invalid value of option 'unused': boolean expected, got number)")
    end)
 
    it("works on empty list", function()
@@ -185,11 +189,12 @@ describe("check_strings", function()
 
    it("panics on bad options", function()
       assert.has_error(function() luacheck.check_strings({"foo"}, "bar") end,
-         "bad argument #2 to 'luacheck.check_strings' (table or nil expected, got string)")
+         "bad argument #2 to 'luacheck.check_strings' (option table expected, got string)")
       assert.has_error(function() luacheck.check_strings({"foo"}, {globals = "bar"}) end,
-         "bad argument #2 to 'luacheck.check_strings' (invalid value of option 'globals')")
+         "bad argument #2 to 'luacheck.check_strings' (invalid value of option 'globals': table expected, got string)")
+      -- luacheck: no max line length
       assert.has_error(function() luacheck.check_strings({"foo"}, {{unused = 123}}) end,
-         "bad argument #2 to 'luacheck.check_strings' (invalid value of option 'unused')")
+         "bad argument #2 to 'luacheck.check_strings' (invalid options at index [1]: invalid value of option 'unused': boolean expected, got number)")
    end)
 
    it("works on empty list", function()
@@ -252,7 +257,8 @@ describe("check_strings", function()
                column = 11,
                end_column = 11,
                overwritten_line = 4,
-               overwritten_column = 4
+               overwritten_column = 4,
+               overwritten_end_column = 7
             },
             {
                code = "311",
@@ -261,7 +267,8 @@ describe("check_strings", function()
                column = 4,
                end_column = 7,
                overwritten_line = 5,
-               overwritten_column = 4
+               overwritten_column = 4,
+               overwritten_end_column = 7
             },
             {
                code = "511",
@@ -359,7 +366,10 @@ return f --[=[
                msg = "label 'b' already defined on line 1",
                line = 1,
                column = 7,
-               end_column = 11
+               end_column = 11,
+               prev_line = 1,
+               prev_column = 1,
+               prev_end_column = 5
             }
          },
          {
@@ -451,11 +461,12 @@ describe("process_reports", function()
 
    it("panics on bad options", function()
       assert.has_error(function() luacheck.process_reports({{}}, "bar") end,
-         "bad argument #2 to 'luacheck.process_reports' (table or nil expected, got string)")
+         "bad argument #2 to 'luacheck.process_reports' (option table expected, got string)")
+      -- luacheck: no max line length
       assert.has_error(function() luacheck.process_reports({{}}, {globals = "bar"}) end,
-         "bad argument #2 to 'luacheck.process_reports' (invalid value of option 'globals')")
+         "bad argument #2 to 'luacheck.process_reports' (invalid value of option 'globals': table expected, got string)")
       assert.has_error(function() luacheck.process_reports({{}}, {{unused = 123}}) end,
-         "bad argument #2 to 'luacheck.process_reports' (invalid value of option 'unused')")
+         "bad argument #2 to 'luacheck.process_reports' (invalid options at index [1]: invalid value of option 'unused': boolean expected, got number)")
    end)
 
    it("processes reports", function()
@@ -549,6 +560,50 @@ describe("get_message", function()
       assert.equal("unexpected character near '%'", luacheck.get_message({
          code = "011",
          msg = "unexpected character near '%'"
+      }))
+
+      assert.equal("unused recursive function 'hello'", luacheck.get_message({
+         code = "211",
+         name = "hello",
+         func = true,
+         recursive = true
+      }))
+
+      assert.equal("unused mutually recursive function 'hallo'", luacheck.get_message({
+         code = "211",
+         name = "hallo",
+         func = true,
+         mutually_recursive = true
+      }))
+
+      assert.equal("cyclomatic complexity of main chunk is too high (yes > please no)", luacheck.get_message({
+         code = "711",
+         function_type = "main_chunk",
+         complexity = "yes",
+         max_complexity = "please no"
+      }))
+
+      assert.equal("cyclomatic complexity of function is too high (10 > 1)", luacheck.get_message({
+         code = "711",
+         function_type = "function",
+         complexity = 10,
+         max_complexity = 1
+      }))
+
+      assert.equal("cyclomatic complexity of function '>>=' is too high (10 > 1)", luacheck.get_message({
+         code = "711",
+         function_type = "function",
+         function_name = ">>=",
+         complexity = 10,
+         max_complexity = 1
+      }))
+
+      assert.equal("cyclomatic complexity of method 'foo.bar.baz' is too high (1000 > 10)", luacheck.get_message({
+         code = "711",
+         function_type = "method",
+         function_name = "foo.bar.baz",
+         complexity = 1000,
+         max_complexity = 10
       }))
    end)
 end)

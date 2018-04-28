@@ -263,12 +263,23 @@ local function get_max_line_length(opts, warning)
    return opts["max_" .. (warning.line_ending or "code") .. "_line_length"]
 end
 
+local function get_max_cyclomatic_complexity(opts)
+   return opts["max_cyclomatic_complexity"]
+end
+
 local function filters(opts, warning)
    if warning.code == "631" then
       local max_line_length = get_max_line_length(opts, warning)
 
       if (not max_line_length or warning.end_column <= max_line_length) then
          return true
+      end
+   end
+
+   if warning.code == "711" then
+      local max_cyclomatic_complexity = get_max_cyclomatic_complexity(opts, warning)
+      if (not max_cyclomatic_complexity or warning.complexity <= max_cyclomatic_complexity) then
+          return true
       end
    end
 
@@ -325,6 +336,9 @@ local function filter_file_report(report)
                issue.field = get_field_string(issue)
             end
 
+            if issue.code == "711" then
+               issue.max_complexity = get_max_cyclomatic_complexity(opts, issue)
+            end
             table.insert(res, issue)
          end
       end
@@ -350,8 +364,8 @@ end
 
 
 -- Transforms file report, returning an array of pairs {issue, normalized options for the issue}.
-local function annotate_file_report_with_affecting_options(file_report, option_stack)
-   local opts = options.normalize(option_stack)
+local function annotate_file_report_with_affecting_options(file_report, option_stack, stds)
+   local opts = options.normalize(option_stack, stds)
 
    if not opts.inline then
       local res = {}
@@ -364,7 +378,7 @@ local function annotate_file_report_with_affecting_options(file_report, option_s
       return res
    end
 
-   local events, per_line_opts = inline_options.validate_options(file_report.events, file_report.per_line_options)
+   local events, per_line_opts = inline_options.validate_options(file_report.events, file_report.per_line_options, stds)
    local issues_with_inline_opts = inline_options.get_issues_and_affecting_options(events, per_line_opts)
 
    local normalized_options_cache = {}
@@ -374,7 +388,8 @@ local function annotate_file_report_with_affecting_options(file_report, option_s
       local issue, inline_opts = pair[1], pair[2]
 
       if not normalized_options_cache[inline_opts] then
-         normalized_options_cache[inline_opts] = options.normalize(utils.concat_arrays({option_stack, inline_opts}))
+         normalized_options_cache[inline_opts] = options.normalize(
+            utils.concat_arrays({option_stack, inline_opts}), stds)
       end
 
       res[i] = {issue, normalized_options_cache[inline_opts]}
@@ -397,14 +412,14 @@ local function get_option_stack(opts, report_index)
    return res
 end
 
-local function annotate_report_with_affecting_options(report, opts)
+local function annotate_report_with_affecting_options(report, opts, stds)
    local res = {}
 
    for i, file_report in ipairs(report) do
       if file_report.fatal then
          res[i] = file_report
       else
-         res[i] = annotate_file_report_with_affecting_options(file_report, get_option_stack(opts, i))
+         res[i] = annotate_file_report_with_affecting_options(file_report, get_option_stack(opts, i), stds)
       end
    end
 
@@ -445,9 +460,9 @@ end
 -- Removes warnings from report that do not match options.
 -- `opts[i]`, if present, is used as options when processing `report[i]`
 -- together with options in its array part.
-function filter.filter(report, opts)
+function filter.filter(report, opts, stds)
    report = add_long_line_warnings(report)
-   report = annotate_report_with_affecting_options(report, opts)
+   report = annotate_report_with_affecting_options(report, opts, stds)
    report = filter_implicit_defs(report)
    return filter_report(report)
 end

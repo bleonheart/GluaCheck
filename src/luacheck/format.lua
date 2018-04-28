@@ -101,7 +101,22 @@ local message_formats = {
    ["613"] = "trailing whitespace in a string",
    ["614"] = "trailing whitespace in a comment",
    ["621"] = "inconsistent indentation (SPACE followed by TAB)",
-   ["631"] = "line is too long ({end_column} > {max_length})"
+   ["631"] = "line is too long ({end_column} > {max_length})",
+   ["711"] = function(w)
+      local template = "cyclomatic complexity of %s is too high ({complexity} > {max_complexity})"
+
+      local function_descr
+
+      if w.function_type == "main_chunk" then
+         function_descr = "main chunk"
+      elseif w.function_name then
+         function_descr = "{function_type} {function_name!}"
+      else
+         function_descr = "function"
+      end
+
+      return template:format(function_descr)
+   end,
 }
 
 local function get_message_format(warning)
@@ -260,6 +275,7 @@ local function format_file_report(report, file_name, opts)
    elseif report.fatal then
       table.insert(buf, "")
       table.insert(buf, "    " .. file_name .. ": " .. report.msg)
+      table.insert(buf, "")
    end
 
    return table.concat(buf, "\n")
@@ -274,9 +290,9 @@ local function escape_xml(str)
    return str
 end
 
-local formatters = {}
+format.builtin_formatters = {}
 
-function formatters.default(report, file_names, opts)
+function format.builtin_formatters.default(report, file_names, opts)
    local buf = {}
 
    if opts.quiet <= 2 then
@@ -306,7 +322,7 @@ function formatters.default(report, file_names, opts)
    return table.concat(buf, "\n")
 end
 
-function formatters.TAP(report, file_names, opts)
+function format.builtin_formatters.TAP(report, file_names, opts)
    opts.color = false
    local buf = {}
 
@@ -326,7 +342,7 @@ function formatters.TAP(report, file_names, opts)
    return table.concat(buf, "\n")
 end
 
-function formatters.JUnit(report, file_names)
+function format.builtin_formatters.JUnit(report, file_names)
    -- JUnit formatter doesn't support any options.
    local opts = {}
    local buf = {[[<?xml version="1.0" encoding="UTF-8"?>]]}
@@ -366,7 +382,37 @@ function formatters.JUnit(report, file_names)
    return table.concat(buf, "\n")
 end
 
-function formatters.plain(report, file_names, opts)
+local fatal_error_codes = {
+   ["I/O"] = "F1",
+   ["syntax"] = "F2",
+   ["runtime"] = "F3"
+}
+
+function format.builtin_formatters.visual_studio(report, file_names)
+   local buf = {}
+
+   for i, file_report in ipairs(report) do
+      if file_report.fatal then
+         -- Older docs suggest that line number after a file name is optional; newer docs mark it as required.
+         -- Just use tool name as origin and put file name into the message.
+         table.insert(buf, ("luacheck : fatal error %s: couldn't check %s: %s"):format(
+            fatal_error_codes[file_report.fatal], file_names[i], file_report.msg))
+      else
+         for _, event in ipairs(file_report) do
+               -- Older documentation on the format suggests that it could support column range.
+               -- Newer docs don't mention it. Don't use it for now.
+               local event_type = event.code:sub(1, 1) == "0" and "error" or "warning"
+               local message = format_message(event)
+               table.insert(buf, ("%s(%d,%d) : %s %s: %s"):format(
+                  file_names[i], event.line, event.column, event_type, event_code(event), message))
+         end
+      end
+   end
+
+   return table.concat(buf, "\n")
+end
+
+function format.builtin_formatters.plain(report, file_names, opts)
    opts.color = false
    local buf = {}
 
@@ -391,7 +437,7 @@ end
 --    `options.codes`: should output warning codes? Default: false.
 --    `options.ranges`: should output token end column? Default: false.
 function format.format(report, file_names, options)
-   return formatters[options.formatter or "default"](report, file_names, {
+   return format.builtin_formatters[options.formatter or "default"](report, file_names, {
       quiet = options.quiet or 0,
       color = (options.color ~= false) and color_support,
       codes = options.codes,
