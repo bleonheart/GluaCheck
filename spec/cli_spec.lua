@@ -913,19 +913,19 @@ Total: 16 warnings / 1 error in 4 files
          end
 
          -- luacheck: push no max string line length
-         local format_version, good_mtime, bad_mtime, python_mtime = cache:match(replace_abspath(([[
+         local format_version, good_mtime, bad_mtime, python_mtime = cache:match(replace_abspath([[
 
 (%d+)
 abspath{spec/samples/good_code.lua}
 (%d+)
-local A,B="711","function";return {{{A,[3]=1,[4]=1,[5]=1,[29]=1,[31]="main_chunk"},{A,[3]=3,[4]=7,[5]=14,[29]=1,[30]="helper",[31]=B},{A,[3]=7,[4]=1,[5]=8,[29]=2,[30]="embracer.embrace",[31]=B}},{},{19,0,23,17,3,0,30,25,26,3,0,15},{[4]="comment"}}
+local A,B="561","function";return {{{A,[3]=1,[4]=1,[5]=1,[29]=1,[31]="main_chunk"},{A,[3]=3,[4]=7,[5]=14,[29]=1,[30]="helper",[31]=B},{A,[3]=7,[4]=1,[5]=8,[29]=2,[30]="embracer.embrace",[31]=B}},{},{19,0,23,17,3,0,30,25,26,3,0,15},{[4]="comment"}}
 abspath{spec/samples/bad_code.lua}
 (%d+)
-local A,B,C,D,E,F="package","711","helper","function","embrace","hepler";return {{{"112",A,1,1,7,[24]={A,"loaded",true}},{B,[3]=1,[4]=1,[5]=1,[29]=1,[31]="main_chunk"},{B,[3]=3,[4]=7,[5]=14,[29]=1,[30]=C,[31]=D},{"211",C,3,16,21,[11]=true},{"212","...",3,23,25},{B,[3]=7,[4]=1,[5]=8,[29]=2,[30]=E,[31]=D},{"111",E,7,10,16,[12]=true,[24]={E}},{"412","opt",8,10,12,7,18,20},{"113",F,9,11,16,[24]={F}}},{},{24,0,26,9,3,0,21,31,26,3,0},{[4]="comment"}}
+local A,B,C,D,E,F="package","561","helper","function","embrace","hepler";return {{{"112",A,1,1,7,[24]={A,"loaded",true}},{B,[3]=1,[4]=1,[5]=1,[29]=1,[31]="main_chunk"},{B,[3]=3,[4]=7,[5]=14,[29]=1,[30]=C,[31]=D},{"211",C,3,16,21,[11]=true},{"212","...",3,23,25},{B,[3]=7,[4]=1,[5]=8,[29]=2,[30]=E,[31]=D},{"111",E,7,10,16,[12]=true,[24]={E}},{"412","opt",8,10,12,7,18,20},{"113",F,9,11,16,[24]={F}}},{},{24,0,26,9,3,0,21,31,26,3,0},{[4]="comment"}}
 abspath{spec/samples/python_code.lua}
 (%d+)
 return {{{"011",[3]=1,[4]=6,[5]=15,[13]="expected '=' near '__future__'"}},{},{},{}}
-]]):gsub("[%[%]]", "%%%0")))
+]]):gsub("[%[%]%-]", "%%%0"), nil)
          -- luacheck: pop
 
          format_version = tonumber(format_version)
@@ -1460,6 +1460,13 @@ Critical error: Couldn't load configuration from spec/configs/bad_config.luachec
 Critical error: Couldn't find configuration file spec/configs/config_404.luacheckrc
 ]], get_output "spec/samples/empty.lua --config=spec/configs/config_404.luacheckrc")
             assert.equal(4, get_exitcode "spec/samples/empty.lua --config=spec/configs/config_404.luacheckrc")
+         end)
+
+         it("raises critical error on config with invalid options", function()
+            assert.equal([[
+Critical error: in config loaded from spec/configs/invalid_config.luacheckrc: invalid value of option 'ignore': array of strings expected, got string
+]], get_output "spec/samples/empty.lua --config=spec/configs/invalid_config.luacheckrc")
+            assert.equal(4, get_exitcode "spec/samples/empty.lua --config=spec/configs/invalid_config.luacheckrc")
          end)
       end)
 

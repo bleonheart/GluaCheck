@@ -1,6 +1,6 @@
-# Change Log
+# Changelog
 
-## 0.22.0 (unreleased)
+## 0.22.0 (2018-05-09)
 
 ### New features and improvements
 
@@ -26,6 +26,9 @@
   directory is now reported separately, and other found files and directories
   are checked anyway. Previously any error when listing any nested directory
   resulted in immediate failure for the entire parent directory (#159).
+* When `--[no-]cache` CLI option is used with LuaFileSystem not found,
+  it is now ignored instead of causing an error. Missing LuaFileSystem is now
+  mentioned in the help message next to features disabled without it.
 
 ### Fixes
 
@@ -35,6 +38,16 @@
   as overwritten by another value.
 * Fixed caching not working properly when cache is enabled in config
   loaded from a parent directory.
+* Fixed per-path config overrides not working on Windows when paths in config
+  and input paths use different case (#150).
+* Added missing definition of `love.handlers` to `love` std (#161).
+
+### Miscellaneous
+
+* Installer script (install.lua) is deprecated. Future versions of Luacheck
+  may have required dependencies. Luacheck can still be installed manually
+  by recursively copying `src/luacheck` to a directory in `package.path`
+  and copying `bin/luacheck.lua` to a directory in `PATH` as `luacheck`.
 
 ## 0.21.2 (2017-11-13)
 
