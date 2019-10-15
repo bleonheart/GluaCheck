@@ -1,40 +1,34 @@
-language: c
+language: python
 sudo: false
 
-cache:
-  directories: here
+env:
+  - LUA="lua=5.1"
+  - LUA="lua=5.2"
+  - LUA="lua=5.3"
+  - LUA="luajit=2.0"
+  - LUA="luajit=2.1"
 
-matrix:
-  include:
-    - compiler: ": Lua51"
-      env: LUA="lua 5.1"
-    - compiler: ": Lua52"
-      env: LUA="lua 5.2"
-    - compiler: ": Lua53"
-      env: LUA="lua 5.3"
-    - compiler: ": LuaJIT20"
-      env: LUA="luajit 2.0"
-    - compiler: ": LuaJIT21"
-      env: LUA="luajit 2.1"
+before_install:
+  - pip install hererocks
+  - pip install codecov
+  - hererocks here --$LUA -r latest
+  - source here/bin/activate
+  - luarocks install lanes
+  - luarocks install busted
+  - luarocks install cluacov
+  - luarocks install luautf8
+  - luarocks install luasocket
 
 install:
-  - pip install --user hererocks
-  - pip install --user codecov
-  - hererocks here --$LUA -r https://github.com/mpeterv/luarocks@upgrade-install
-  - export PATH="$PWD/here/bin:$PATH"
-  - luarocks install lanes --upgrade --upgrade-deps
-  - luarocks install busted --upgrade --upgrade-deps
-  - luarocks install cluacov --upgrade --upgrade-deps
+  - luarocks make
 
 script:
   - busted -c
   - lua -e 'package.path="./src/?.lua;./src/?/init.lua;"..package.path' -lluacov bin/luacheck.lua luacheck-dev-1.rockspec -j2
-  - lua -e 'package.preload.lfs=error;package.path="./src/?.lua;./src/?/init.lua;"..package.path' -lluacov bin/luacheck.lua src | grep 'I/O error'
   - lua -e 'package.preload.lanes=error;package.path="./src/?.lua;./src/?/init.lua;"..package.path' -lluacov bin/luacheck.lua --version | grep 'Not found'
-  - lua install.lua path/to/luacheck
-  - mv src src2
-  - path/to/luacheck/bin/luacheck spec/*.lua
-  - mv src2 src
+  - lua -e 'package.path="./src/?.lua;./src/?/init.lua;"..package.path' -lluacov bin/luacheck.lua spec/*.lua
+  - luacheck .
+  - luacheck .
 
 after_script:
   - luacov
